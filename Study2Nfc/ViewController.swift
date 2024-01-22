@@ -14,6 +14,8 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     @IBOutlet weak var lblReadData: UILabel!
     @IBOutlet weak var TextReadData: UITextField!
 
+    private var ndefMessage: NFCNDEFMessage!
+    private var session: NFCNDEFReaderSession!
     var isWriting = false
 
     override func viewDidLoad() {
@@ -29,6 +31,10 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
 
     @IBAction func startWrite(_ sender: Any) {
         isWriting = true
+        // get write string
+        let textPayload = NFCNDEFPayload.wellKnownTypeURIPayload(string: self.TextWriteData.text ?? "write string")
+        ndefMessage = NFCNDEFMessage(records: [textPayload!])
+        
         guard let messageText = TextWriteData.text else { return }
         let session = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
         session.begin()
@@ -48,7 +54,22 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     }
     
     func readerSession(_ session: NFCNDEFReaderSession, didDetect tags: [NFCNDEFTag]) {
-            let tag = tags.first!
+        
+        let tag = tags.first!
+        // write
+        if isWriting {
+            session.connect(to: tag) { error in
+                tag.queryNDEFStatus() { [unowned self] status, capacity, error in
+                    if status == .readWrite {
+                        self.writeTag(tag: tag, session: session)
+                        return
+                    }
+                    session.invalidate(errorMessage: "error tag")
+                }
+            }
+        }
+        // read
+        else {
             session.connect(to: tag) { (error: Error?) in
                 if error != nil {
                     session.invalidate(errorMessage: "Connection error. Please try again.")
@@ -58,19 +79,29 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                     if status == .readOnly {
                         session.invalidate(errorMessage: "Tag is not writable.")
                     } else if status == .readWrite {
-//                        self.TextReadData.text = "reading "
+                        //                        self.TextReadData.text = "reading "
                         self.readTag(tag: tag, session: session)
-//                        if let retval = self.readTag(tag: tag, session: session) {
-//                            self.TextReadData.text = "ok data"
-//                        } else {
-//                            self.TextReadData.text = "not data"
-//                        }
+                        //                        if let retval = self.readTag(tag: tag, session: session) {
+                        //                            self.TextReadData.text = "ok data"
+                        //                        } else {
+                        //                            self.TextReadData.text = "not data"
+                        //                        }
                         
                     } else {
                         session.invalidate(errorMessage: "Tag is not NDEF formatted.")
                     }
                 }
             }
+        }
+    }
+   
+    
+    private func writeTag(tag: NFCNDEFTag, session: NFCNDEFReaderSession) {
+        print("write msg: ", self.ndefMessage ?? "no ndef message")
+        tag.writeNDEF(self.ndefMessage) { error in
+            session.alertMessage = "write alart"
+            session.invalidate()
+        }
     }
     
     private func readTag(tag: NFCNDEFTag, session: NFCNDEFReaderSession) {
@@ -87,9 +118,10 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                     if let url = $0.wellKnownTypeURIPayload() {
                         return url.absoluteString
                     }
-                    let payloadData = $0.payload
+                    // TODO: skip 1st byte
+                    let payloadData = $0.payload.advanced(by: 1)
                     // string
-                    /*
+                    
                     if let payloadString = String(data: payloadData, encoding: .utf8) {
                         print("payloadString: ", payloadString)
                         DispatchQueue.main.async {
@@ -97,10 +129,10 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                         }
                         return payloadString
                     }
-                     */
+                    
                     
                     // JSON
-                    
+                    /*
                     if let payloadString = String(data: payloadData, encoding: .utf8),
                         let data = payloadString.data(using: .utf8) {
                             
@@ -117,7 +149,7 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                         }
                         return nil
                     }
-                    
+                    */
                     return nil
                 default:
                     return nil
