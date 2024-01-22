@@ -17,6 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		8739169A2B5E41EA00A3E197 /* working.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = working.md; sourceTree = "<group>"; };
 		877891A82B58AB480022960D /* Study2Nfc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Study2Nfc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		877891AB2B58AB480022960D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		877891AD2B58AB480022960D /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -45,6 +46,7 @@
 		8778919F2B58AB480022960D = {
 			isa = PBXGroup;
 			children = (
+				8739169A2B5E41EA00A3E197 /* working.md */,
 				877891C02B58B7540022960D /* README.md */,
 				877891AA2B58AB480022960D /* Study2Nfc */,
 				877891A92B58AB480022960D /* Products */,
