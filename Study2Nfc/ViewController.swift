@@ -88,111 +88,46 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                         return url.absoluteString
                     }
                     let payloadData = $0.payload
+                    // string
+                    /*
                     if let payloadString = String(data: payloadData, encoding: .utf8) {
-                        print(payloadString)
+                        print("payloadString: ", payloadString)
                         DispatchQueue.main.async {
                             self.lblReadData.text = payloadString
                         }
                         return payloadString
                     }
-                    //let payload = $0.wellKnownTypeTextPayload()
-                    //print("payload", payload)
-//                    if let text = String(data: payload, locale: Locale(identifier: "ja_JP")) {
+                     */
                     
-                
-//                    if let text = String(data: payload, encoding: .utf8) {
-//                        return text
-//                    }
-
-                    //if let text = payload.0, let locale = payload.1 {
-                        // return "\(text)\n\(locale)"
-                        //return locale.localizedString(forRegionCode: text)
-                    //}
+                    // JSON
+                    
+                    if let payloadString = String(data: payloadData, encoding: .utf8),
+                        let data = payloadString.data(using: .utf8) {
+                            
+                         do {
+                            if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                                print("json:", json)
+                                DispatchQueue.main.async {
+                                    self.lblReadData.text = "\(json)"
+                                }
+                                return "\(json)"
+                            }
+                        } catch let error {
+                            print("Failed to create JSON object: \(error)")
+                        }
+                        return nil
+                    }
+                    
                     return nil
                 default:
                     return nil
                 }
             }.joined(separator: "\n") ?? "no message"
-            print(text ?? "no message")
+            print("tag data strings:")
+            print(text )
         }
     }
 
-/*
-    func readerSession(_ session: NFCNDEFReaderSession, didDetect tags: [NFCNDEFTag]) {
-        print("readerSession, ", isWriting)
-        if !isWriting {
-            print("just reading!")
-            for message in messages {
-                for payload in message.records {
-                    if let payloadString = String.init(data: payload.payload.advanced(by: 1), encoding: .utf8) {
-                        print(payloadString)
-                        DispatchQueue.main.async {
-                            self.TextReadData.text = payloadString
-                            self.lblReadData.text = payloadString
-                        }
-                    }
-                }
-            }
-        }
-        // writing
-        else {
-            print("writing!")
-            let tag = tags.first!
-            session.connect(to: tag) { (error: Error?) in
-                if error != nil {
-                    session.invalidate(errorMessage: "Connection error. Please try again.")
-                    return
-                }
-                tag.queryNDEFStatus { (status: NFCNDEFStatus, capacity: Int, error: Error?) in
-                    if status == .readOnly {
-                        session.invalidate(errorMessage: "Tag is not writable.")
-                    } else if status == .readWrite {
-                        let payload = NFCNDEFPayload(format: .nfcWellKnown, type: Data(), identifier: Data(), payload: self.TextWriteData.text!.data(using: .utf8)!)
-                        let message = NFCNDEFMessage(records: [payload])
-                        tag.writeNDEF(message) { (error: Error?) in
-                            if error != nil {
-                                session.invalidate(errorMessage: "Write failed. Please try again.")
-                            } else {
-                                session.alertMessage = "Write successful!"
-                                session.invalidate()
-                            }
-                        }
-                    } else {
-                        session.invalidate(errorMessage: "Tag is not NDEF formatted.")
-                    }
-                }
-            }
-        }
-    }
-    func readerSession(_ session: NFCNDEFReaderSession, didDetect tags: [NFCNDEFTag]) {
-        if isWriting {
-            let tag = tags.first!
-            session.connect(to: tag) { (error: Error?) in
-                if error != nil {
-                    session.invalidate(errorMessage: "Connection error. Please try again.")
-                    return
-                }
-                tag.queryNDEFStatus { (status: NFCNDEFStatus, capacity: Int, error: Error?) in
-                    if status == .readOnly {
-                        session.invalidate(errorMessage: "Tag is not writable.")
-                    } else if status == .readWrite {
-                        let payload = NFCNDEFPayload(format: .nfcWellKnown, type: Data(), identifier: Data(), payload: self.TextWriteData.text!.data(using: .utf8)!)
-                        let message = NFCNDEFMessage(records: [payload])
-                        tag.writeNDEF(message) { (error: Error?) in
-                            if error != nil {
-                                session.invalidate(errorMessage: "Write failed. Please try again.")
-                            } else {
-                                session.alertMessage = "Write successful!"
-                                session.invalidate()
-                            }
-                        }
-                    } else {
-                        session.invalidate(errorMessage: "Tag is not NDEF formatted.")
-                    }
-                }
-            }
-        }
-    }
-*/
+
  
 }
