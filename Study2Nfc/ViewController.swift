@@ -13,7 +13,8 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     @IBOutlet weak var TextWriteData: UITextField!
     @IBOutlet weak var lblReadData: UILabel!
     @IBOutlet weak var TextReadData: UITextField!
-
+    @IBOutlet weak var lblReadDataHex: UILabel!
+    
     private var ndefMessage: NFCNDEFMessage!
     private var session: NFCNDEFReaderSession!
     var isWriting = false
@@ -35,14 +36,18 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         let textPayload = NFCNDEFPayload.wellKnownTypeURIPayload(string: self.TextWriteData.text ?? "write string")
         ndefMessage = NFCNDEFMessage(records: [textPayload!])
         
-        guard let messageText = TextWriteData.text else { return }
+        // guard let messageText = TextWriteData.text else { return }
         let session = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
         session.begin()
         print("session write start")
     }
 
     func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
-        print("error")
+        if let nfcError = error as? NFCReaderError, nfcError.code == NFCReaderError.readerSessionInvalidationErrorUserCanceled {
+            print("User cancelled the session")
+        } else {
+            print("error: ", error)
+        }
     }
 
     func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
@@ -118,14 +123,35 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                     if let url = $0.wellKnownTypeURIPayload() {
                         return url.absoluteString
                     }
-                    // TODO: skip 1st byte
-                    let payloadData = $0.payload.advanced(by: 1)
-                    // string
-                    
+                    // TODO: skip 1-3 byte
+                    // let payloadData = $0.payload.advanced(by: 1)
+                    var payloadData = $0.payload
+                    print("payloadData: ", payloadData)
+                    // print binary data as hex string. e.g. 0x01020304
+                    print(payloadData.map { String(format: "0x%02hhx", $0) }.joined(separator: ""))
+                    // print binary data as hex string. e.g. 0x01 02 03 04
+                    // print(payloadData.map { String(format: "0x%02hhx", $0) }.joined(separator: " "))
+                    print(payloadData.map { String(format: "%02hhx", $0) }.joined(separator: " "))
+                    // print length of payload data
+                    print("payloadData length: ", payloadData.count)
+                    let dataString = payloadData.map { String(format: "%02hhx", $0) }.joined(separator: " ")
+                    print("dataString: ", dataString)
+
+                    // if payloaddata first byte is 0x00, skip 1 byte
+                    if payloadData[0] == 0x00 {
+                        print("payloadData[0] == 0x00")
+                        //let payloadData = payloadData[1...]
+                        //let payloadData = $0.payload.advanced(by: 1)
+                        payloadData[0] = 0x02
+                        print("payloadData: ", payloadData)
+                        print("payloadData length: ", payloadData.count)
+                    }
+
                     if let payloadString = String(data: payloadData, encoding: .utf8) {
                         print("payloadString: ", payloadString)
                         DispatchQueue.main.async {
                             self.lblReadData.text = payloadString
+                            self.lblReadDataHex.text = dataString
                         }
                         return payloadString
                     }
