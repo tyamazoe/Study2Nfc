@@ -33,8 +33,33 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     @IBAction func startWrite(_ sender: Any) {
         isWriting = true
         // get write string
-        let textPayload = NFCNDEFPayload.wellKnownTypeURIPayload(string: self.TextWriteData.text ?? "write string")
-        ndefMessage = NFCNDEFMessage(records: [textPayload!])
+
+        // With header byte
+        //let textPayload = NFCNDEFPayload.wellKnownTypeURIPayload(string: self.TextWriteData.text ?? "write string")
+        //let textPayload = NFCNDEFPayload.wellKnownTypeTextPayload(string: self.TextWriteData.text ?? "write string", locale: Locale(identifier: "en"))
+        //ndefMessage = NFCNDEFMessage(records: [textPayload])
+        // TODO: with header NG
+        /*
+        let textPayload = NFCNDEFPayload.wellKnownTypeTextPayload(string: self.TextWriteData.text ?? "write string", locale: Locale(identifier: "en"))
+
+        if let unwrappedPayload = textPayload {
+            ndefMessage = NFCNDEFMessage(records: [unwrappedPayload])
+        } else {
+            // Handle the case where the payload is nil, if necessary.
+        }
+         */
+
+        // No header byte
+        
+        let textPayload = NFCNDEFPayload(
+            format: .nfcWellKnown,
+            //type: Data([0x55]),
+            type: "T".data(using: .utf8)!,
+            identifier: Data(),
+            // payload: self.TextWriteData.text?.data(using: .utf8)
+            payload: self.TextWriteData.text!.data(using: .utf8)!
+        )
+        ndefMessage = NFCNDEFMessage(records: [textPayload])
         
         // guard let messageText = TextWriteData.text else { return }
         let session = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
@@ -120,33 +145,22 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                 switch $0.typeNameFormat {
                 case .nfcWellKnown:
                     print("--- nfcWelKnown")
-                    if let url = $0.wellKnownTypeURIPayload() {
-                        return url.absoluteString
-                    }
-                    // TODO: skip 1-3 byte
-                    // let payloadData = $0.payload.advanced(by: 1)
-                    var payloadData = $0.payload
-                    print("payloadData: ", payloadData)
-                    // print binary data as hex string. e.g. 0x01020304
-                    print(payloadData.map { String(format: "0x%02hhx", $0) }.joined(separator: ""))
-                    // print binary data as hex string. e.g. 0x01 02 03 04
-                    // print(payloadData.map { String(format: "0x%02hhx", $0) }.joined(separator: " "))
-                    print(payloadData.map { String(format: "%02hhx", $0) }.joined(separator: " "))
-                    // print length of payload data
-                    print("payloadData length: ", payloadData.count)
-                    let dataString = payloadData.map { String(format: "%02hhx", $0) }.joined(separator: " ")
+                    // TODO: original payload
+                    let payloadOrg = $0.payload
+                    print("payloadData: ", payloadOrg)
+                    print(payloadOrg.map { String(format: "%02hhx", $0) }.joined(separator: " "))
+                    print("payloadData length: ", payloadOrg.count)
+                    let dataString = payloadOrg.map { String(format: "%02hhx", $0) }.joined(separator: " ")
                     print("dataString: ", dataString)
-
-                    // if payloaddata first byte is 0x00, skip 1 byte
-                    if payloadData[0] == 0x00 {
-                        print("payloadData[0] == 0x00")
-                        //let payloadData = payloadData[1...]
-                        //let payloadData = $0.payload.advanced(by: 1)
-                        payloadData[0] = 0x02
-                        print("payloadData: ", payloadData)
-                        print("payloadData length: ", payloadData.count)
-                    }
-
+                    
+                    // TODO: skip 1st byte
+                    let payloadData = $0.payload.advanced(by: 1)
+                    print("payloadData: ", payloadData)
+                    print(payloadData.map { String(format: "%02hhx", $0) }.joined(separator: " "))
+                    print("payloadData length: ", payloadData.count)
+                   
+                    // string
+                    
                     if let payloadString = String(data: payloadData, encoding: .utf8) {
                         print("payloadString: ", payloadString)
                         DispatchQueue.main.async {
@@ -156,9 +170,11 @@ class ViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                         return payloadString
                     }
                     
-                    
                     // JSON
                     /*
+                    DispatchQueue.main.async {
+                        self.lblReadDataHex.text = dataString
+                    }
                     if let payloadString = String(data: payloadData, encoding: .utf8),
                         let data = payloadString.data(using: .utf8) {
                             
